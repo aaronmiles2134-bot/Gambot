@@ -1,7 +1,8 @@
 node_modules/
 .env
 db/analyst.db
-db/reports/
+db/reports/*.md
+db/reports/*.json
 dist/
 coverage/
 *.log
