@@ -1,6 +1,8 @@
 node_modules/
 .env
 db/analyst.db
+db/analyst.db-shm
+db/analyst.db-wal
 db/reports/*.md
 db/reports/*.json
 dist/
