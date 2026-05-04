@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gambot — Phase 1 Test Console</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d1a;
+      color: #e0e0ff;
+      font-family: 'Courier New', monospace;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      color: #00ffe5;
+      font-size: 1.6rem;
+      margin-bottom: 4px;
+    }
+    .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 28px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .panel {
+      background: #15152a;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #ffd60a;
+      font-size: 1rem;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: #aaa;
+      margin-bottom: 3px;
+      margin-top: 10px;
+    }
+
+    input, select {
+      width: 100%;
+      background: #0d0d1a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #e0e0ff;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    input:focus, select:focus { outline: 2px solid #00ffe5; }
+
+    button {
+      margin-top: 14px;
+      padding: 9px 18px;
+      background: #00ffe5;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover { background: #00cccc; }
+    button:disabled { background: #333; color: #666; cursor: default; }
+
+    .output-panel {
+      grid-column: 1 / -1;
+    }
+
+    #output {
+      background: #0a0a14;
+      border: 1px solid #222;
+      border-radius: 6px;
+      padding: 16px;
+      min-height: 220px;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      max-height: 600px;
+      color: #ccc;
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .status-item {
+      background: #15152a;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 0.82rem;
+    }
+    .status-item span { color: #00ffe5; font-weight: bold; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .tag-hot { background: #ff8800; color: #000; }
+    .tag-cold { background: #3b82f6; color: #fff; }
+    .tag-expected { background: #333; color: #aaa; }
+
+    .log-line-key { color: #ffd60a; }
+    .log-line-val { color: #00ffe5; }
+    .log-line-err { color: #ff3366; }
+    .log-line-ok { color: #4ade80; }
+    .log-sep { color: #444; }
+
+    #session-id-display { color: #00ffe5; font-size: 0.8rem; margin-top: 8px; min-height: 18px; }
+    #stint-id-display { color: #00ffe5; font-size: 0.8rem; margin-top: 8px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <h1>🤖 Gambot — Phase 1 Test Console</h1>
+  <p class="subtitle">Manually drive spins and inspect stats engine output. No OCR / AI in Phase 1.</p>
+
+  <div class="status-bar">
+    <div class="status-item">Session: <span id="badge-session">—</span></div>
+    <div class="status-item">Stint: <span id="badge-stint">—</span></div>
+    <div class="status-item">Balance: <span id="badge-balance">—</span></div>
+    <div class="status-item">Spins: <span id="badge-spins">—</span></div>
+    <div class="status-item">Drought: <span id="badge-drought">—</span></div>
+    <div class="status-item">RTP State: <span id="badge-rtpstate">—</span></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- START SESSION -->
+    <div class="panel">
+      <h2>1. Start Session</h2>
+      <label>Starting balance ($)</label>
+      <input type="number" id="start-balance" value="1000" step="50" />
+      <label>Stream title (optional)</label>
+      <input type="text" id="stream-title" placeholder="Sunday Bonus Hunt" />
+      <button id="btn-start-session">Start Session</button>
+      <div id="session-id-display"></div>
+    </div>
+
+    <!-- START STINT -->
+    <div class="panel">
+      <h2>2. Start Game Stint</h2>
+      <label>Game</label>
+      <select id="game-select">
+        <option value="">Loading games…</option>
+      </select>
+      <label>Stint start balance ($)</label>
+      <input type="number" id="stint-balance" value="1000" step="50" />
+      <button id="btn-start-stint">Start Stint</button>
+      <div id="stint-id-display"></div>
+    </div>
+
+    <!-- LOG SPIN -->
+    <div class="panel">
+      <h2>3. Log Spin</h2>
+      <label>Bet size ($)</label>
+      <input type="number" id="spin-bet" value="1" step="0.5" />
+      <label>Win amount ($, 0 = loss)</label>
+      <input type="number" id="spin-win" value="0" step="0.5" />
+      <label>Feature triggered? (bonus / free spins)</label>
+      <select id="spin-feature">
+        <option value="0">No</option>
+        <option value="1">Yes</option>
+      </select>
+      <button id="btn-log-spin">Log Spin → See Stats</button>
+    </div>
+
+    <!-- QUICK BATCH -->
+    <div class="panel">
+      <h2>Quick Batch</h2>
+      <label>Simulate N spins at current bet (no features)</label>
+      <input type="number" id="batch-count" value="20" min="1" max="500" />
+      <label>Bet per spin ($)</label>
+      <input type="number" id="batch-bet" value="1" step="0.5" />
+      <label>Approximate RTP for simulation</label>
+      <input type="number" id="batch-rtp" value="0.965" step="0.005" min="0" max="1" />
+      <button id="btn-batch">Run Batch Simulation</button>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="panel output-panel">
+      <h2>Stats Output</h2>
+      <div id="output">Awaiting first action…</div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    let sessionId = null;
+    let stintId = null;
+    let gameId = null;
+    let currentBalance = null;
+    let spinCount = 0;
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+    const out = $('output');
+
+    function log(text, cls = '') {
+      const line = document.createElement('div');
+      if (cls) line.className = cls;
+      line.textContent = text;
+      out.appendChild(line);
+      out.scrollTop = out.scrollHeight;
+    }
+
+    function logSep() {
+      const line = document.createElement('div');
+      line.className = 'log-sep';
+      line.textContent = '─'.repeat(72);
+      out.appendChild(line);
+    }
+
+    function logJson(obj) {
+      const text = JSON.stringify(obj, null, 2);
+      // Colour-code keys and string values
+      text.split('\n').forEach(line => {
+        const el = document.createElement('div');
+        el.innerHTML = line
+          .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"([^"]+)":/g, '<span class="log-line-key">"$1":</span>')
+          .replace(/: "([^"]+)"/g, ': <span class="log-line-val">"$1"</span>');
+        out.appendChild(el);
+      });
+    }
+
+    async function api(method, path, body) {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch('/api' + path, opts);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'API error');
+      return json;
+    }
+
+    function updateBadges(spin, statsSnap) {
+      $('badge-session').textContent = sessionId ?? '—';
+      $('badge-stint').textContent = stintId ?? '—';
+      $('badge-balance').textContent = currentBalance != null
+        ? `$${currentBalance.toFixed(2)}` : '—';
+      $('badge-spins').textContent = spinCount;
+
+      if (statsSnap) {
+        const d = statsSnap.drought;
+        $('badge-drought').textContent = d
+          ? `${d.droughtPercentile.toFixed(1)}%` : '—';
+        const v = statsSnap.variance;
+        if (v) {
+          const tag = `<span class="tag tag-${v.state}">${v.state.toUpperCase()}</span>`;
+          $('badge-rtpstate').innerHTML = tag;
+        } else {
+          $('badge-rtpstate').textContent = '—';
+        }
+      }
+    }
+
+    // ── Load games ─────────────────────────────────────────────────────────────
+    async function loadGames() {
+      try {
+        const games = await api('GET', '/games');
+        const sel = $('game-select');
+        sel.innerHTML = '';
+        games.forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g.id;
+          opt.textContent = `${g.name} (${g.provider}) — RTP ${(g.rtp * 100).toFixed(2)}%`;
+          opt.dataset.rtp = g.rtp;
+          sel.appendChild(opt);
+        });
+        if (games.length > 0) gameId = games[0].id;
+        log(`Loaded ${games.length} games from DB.`, 'log-line-ok');
+      } catch(e) {
+        log(`Error loading games: ${e.message}`, 'log-line-err');
+      }
+    }
+
+    $('game-select').addEventListener('change', e => {
+      gameId = e.target.value || null;
+    });
+
+    // ── Start session ──────────────────────────────────────────────────────────
+    $('btn-start-session').addEventListener('click', async () => {
+      try {
+        const startBalance = parseFloat($('start-balance').value);
+        const streamTitle = $('stream-title').value.trim() || undefined;
+        const session = await api('POST', '/sessions', { startBalance, streamTitle });
+        sessionId = session.id;
+        currentBalance = startBalance;
+        spinCount = 0;
+        $('session-id-display').textContent = `Session ID: ${sessionId}`;
+        logSep();
+        log(`✅ Session ${sessionId} started — balance $${startBalance}`, 'log-line-ok');
+        updateBadges();
+      } catch(e) {
+        log(`Error: ${e.message}`, 'log-line-err');
+      }
+    });
+
+    // ── Start stint ────────────────────────────────────────────────────────────
+    $('btn-start-stint').addEventListener('click', async () => {
+      if (!sessionId) return log('Start a session first.', 'log-line-err');
+      gameId = $('game-select').value;
+      if (!gameId) return log('Select a game.', 'log-line-err');
+      try {
+        const gameName = $('game-select').selectedOptions[0].textContent.split(' (')[0];
+        const startBalance = parseFloat($('stint-balance').value);
+        const stint = await api('POST', '/stints', { sessionId, gameName, startBalance });
+        stintId = stint.id;
+        $('stint-id-display').textContent = `Stint ID: ${stintId} | Game ID: ${stint.game_id}`;
+        logSep();
+        log(`✅ Stint ${stintId} started — ${gameName}`, 'log-line-ok');
+        updateBadges();
+      } catch(e) {
+        log(`Error: ${e.message}`, 'log-line-err');
+      }
+    });
+
+    // ── Log spin ───────────────────────────────────────────────────────────────
+    async function logSpin(betSize, winAmount, featureTriggered) {
+      if (!sessionId || !stintId || !gameId) {
+        log('Start session and stint first.', 'log-line-err');
+        return null;
+      }
+      const balanceBefore = currentBalance;
+      const balanceAfter = balanceBefore - betSize + winAmount;
+      currentBalance = balanceAfter;
+      spinCount++;
+
+      try {
+        const result = await api('POST', '/spins', {
+          sessionId, stintId, gameId: parseInt(gameId),
+          betSize, winAmount, balanceBefore, balanceAfter,
+          featureTriggered
+        });
+        return result;
+      } catch(e) {
+        log(`Spin error: ${e.message}`, 'log-line-err');
+        currentBalance = balanceBefore;
+        spinCount--;
+        return null;
+      }
+    }
+
+    $('btn-log-spin').addEventListener('click', async () => {
+      const betSize = parseFloat($('spin-bet').value);
+      const winAmount = parseFloat($('spin-win').value);
+      const featureTriggered = parseInt($('spin-feature').value);
+
+      const result = await logSpin(betSize, winAmount, featureTriggered);
+      if (!result) return;
+
+      const { spin, stats: snap } = result;
+      logSep();
+      log(`Spin #${spin.spin_number} | Bet: $${betSize} | Win: $${winAmount} | Balance: $${currentBalance.toFixed(2)}${featureTriggered ? ' 🎰 BONUS!' : ''}`);
+      log('');
+      log('DROUGHT:');
+      logJson(snap.drought);
+      log('');
+      log('VARIANCE:');
+      logJson(snap.variance);
+      log('');
+      log('BANKROLL — expected spins left: ' + (Number.isFinite(snap.bankroll) ? snap.bankroll.toFixed(0) : '∞'));
+      log('');
+      log('DRAWDOWN:');
+      logJson(snap.drawdown);
+      if (snap.evAnalysis) {
+        log('');
+        log('EV ANALYSIS (buy vs grind):');
+        logJson(snap.evAnalysis);
+      }
+      updateBadges(spin, snap);
+    });
+
+    // ── Batch simulation ───────────────────────────────────────────────────────
+    $('btn-batch').addEventListener('click', async () => {
+      const n = parseInt($('batch-count').value);
+      const bet = parseFloat($('batch-bet').value);
+      const rtp = parseFloat($('batch-rtp').value);
+
+      if (!sessionId || !stintId || !gameId) {
+        log('Start session and stint first.', 'log-line-err');
+        return;
+      }
+
+      $('btn-batch').disabled = true;
+      logSep();
+      log(`Running ${n}-spin batch at $${bet}/spin, ~${(rtp*100).toFixed(1)}% RTP…`);
+      out.scrollTop = out.scrollHeight;
+
+      let lastResult = null;
+      for (let i = 0; i < n; i++) {
+        const rand = Math.random();
+        // Simple model: each spin returns 0 (base case) or a random win
+        // Probability of hitting a return is rtp (simplified, not volatility-aware)
+        const win = rand < rtp ? bet * (Math.random() * 2.5 + 0.5) : 0;
+        lastResult = await logSpin(bet, parseFloat(win.toFixed(2)), 0);
+      }
+
+      if (lastResult) {
+        const { spin, stats: snap } = lastResult;
+        logSep();
+        log(`Batch done — ${n} spins.`);
+        log(`Balance: $${currentBalance.toFixed(2)} | Drought: ${snap.drought.droughtPercentile.toFixed(1)}%`);
+        if (snap.variance) {
+          log(`Variance: ${snap.variance.label} (z=${snap.variance.zScore.toFixed(2)}, observed RTP ${(snap.variance.observedRtp*100).toFixed(2)}%)`);
+        }
+        log(`Expected spins left: ${Number.isFinite(snap.bankroll) ? snap.bankroll.toFixed(0) : '∞'}`);
+        if (snap.evAnalysis) {
+          log(`EV rec: ${snap.evAnalysis.recommendation.toUpperCase()} (delta=${snap.evAnalysis.delta.toFixed(2)}, confidence=${snap.evAnalysis.confidencePoints.toFixed(0)}pts)`);
+        }
+        updateBadges(spin, snap);
+      }
+
+      $('btn-batch').disabled = false;
+    });
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    loadGames();
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "name": "gambot",
+  "version": "1.0.0",
+  "description": "Gambot — Live Stream Gambling AI Co-Host",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "seed": "node scripts/seedGames.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.54.0",
+    "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.2",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.1.3",
+    "nodemon": "^3.1.10",
+    "vitest": "^3.1.3"
+  }
+}
